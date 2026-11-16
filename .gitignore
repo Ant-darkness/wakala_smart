@@ -1,0 +1,85 @@
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyd
+*.so
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Python environments
+.venv/
+venv/
+env/
+
+# Environment variables and secrets
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+logs/
+
+# Test and coverage
+.coverage
+htmlcov/
+coverage.xml
+
+# Build and distribution
+build/
+dist/
+*.egg-info/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# Operating system
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Temporary files
+*.tmp
+*.bak
+*.old
+
+# Database local files
+*.db
+*.sqlite3
+
+# Flutter (shared repository)
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+build/
+```
+ 
+**Kwa nini ni muhimu?** Faili hili linazuia Git kuhifadhi Python cache, local databases, secrets na build artifacts. Hasa `.env` haitakiwi kuingia Git kwa sababu itakuwa na database credentials na secret keys.
+
+## Hatua ya 3 — Thibitisha `.gitignore`
+
+Hifadhi faili, kisha endesha:
+
+```powershell
+Test-Path .\.gitignore
+```
+
+Tunatarajia `True`.
+
+Kisha tuanze kusakinisha dependencies zetu:
+
+```powershell
+python -m pip install -e ".[dev]"
+```
+
+Hii itasoma `pyproject.toml` na kusakinisha FastAPI, Uvicorn, SQLAlchemy, PostgreSQL driver, Alembic, Pytest, HTTPX na Ruff.
+
+<text color="secondary" size="sm">Usifunge PowerShell wakati installation inaendelea.</text>
+
+**Nitumie output ya installation na `Test-Path`.** Kisha tunaingia moja kwa moja kwenye `backend/app/main.py` na kuanzisha API yetu ya kwanza.
