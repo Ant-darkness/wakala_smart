@@ -165,9 +165,15 @@ def create_daily_archive(
         expense_summary=expense_summary,
     )
 
-    db.add(archive)
-    db.flush()
-    db.refresh(archive)
+    try:
+        
+        db.add(archive)
+        db.flush()
+        db.refresh(archive)
+        
+    except Exception:
+        db.rollback()
+        raise
 
     return DailyArchiveResponse.model_validate(archive)
 

@@ -146,35 +146,42 @@ def close_daily_register(
         if register is None:
             raise HTTPException(
                 status_code=404,
-                detail="Daily register not found",
+                detail="Daily register not found.",
             )
 
         if register.status == DailyRegisterStatus.CLOSED:
             raise HTTPException(
                 status_code=409,
-                detail="This daily register is already closed",
+                detail="This daily register is already closed.",
             )
 
+        # Lock ALL tenant accounts, including inactive ones.
+        # Existing register snapshots must receive closing values.
         accounts = list(
             db.scalars(
                 select(Account)
-                .where(
-                    Account.tenant_id == tenant_id,
-                    Account.is_active.is_(True),
-                )
+                .where(Account.tenant_id == tenant_id)
                 .order_by(Account.id)
                 .with_for_update()
             ).all()
         )
 
-        now = datetime.now(UTC)
+        account_map = {
+            account.id: account
+            for account in accounts
+        }
 
+        # Master capital includes active business accounts only.
         closing_capital = sum(
-            (account.balance for account in accounts),
+            (
+                account.balance
+                for account in accounts
+                if account.is_active
+            ),
             Decimal("0.00"),
         )
 
-        account_map = {account.id: account for account in accounts}
+        now = datetime.now(UTC)
 
         snapshots = list(
             db.scalars(
@@ -183,6 +190,7 @@ def close_daily_register(
                     DailyRegisterBalance.register_id == register.id,
                     DailyRegisterBalance.tenant_id == tenant_id,
                 )
+                .order_by(DailyRegisterBalance.account_id)
                 .with_for_update()
             ).all()
         )
@@ -191,7 +199,13 @@ def close_daily_register(
             account = account_map.get(snapshot.account_id)
 
             if account is None:
-                continue
+                raise HTTPException(
+                    status_code=409,
+                    detail=(
+                        "A register account snapshot references "
+                        "an account that no longer exists."
+                    ),
+                )
 
             snapshot.closing_balance = account.balance
             snapshot.closed_at = now
@@ -215,6 +229,7 @@ def close_daily_register(
                 "status": DailyRegisterStatus.CLOSED.value,
                 "closing_master_capital": str(closing_capital),
                 "closed_at": now.isoformat(),
+                "account_snapshot_count": len(snapshots),
             },
         )
 
@@ -230,7 +245,6 @@ def close_daily_register(
     except Exception:
         db.rollback()
         raise
-
 
 def get_daily_register(
     db: Session,

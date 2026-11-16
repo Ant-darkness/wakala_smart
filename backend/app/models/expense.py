@@ -1,3 +1,4 @@
+
 import uuid
 from datetime import datetime
 from decimal import Decimal
@@ -7,14 +8,15 @@ from sqlalchemy import (
     DateTime,
     Enum,
     ForeignKey,
+    ForeignKeyConstraint,
     Index,
     Numeric,
     String,
     Text,
+    func,
 )
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
-from sqlalchemy.sql import func
 
 from app.db.base import Base
 from app.models.financial_enums import ExpenseStatus
@@ -24,9 +26,31 @@ class Expense(Base):
     __tablename__ = "expenses"
 
     __table_args__ = (
+        ForeignKeyConstraint(
+            ["tenant_id", "category_id"],
+            ["categories.tenant_id", "categories.id"],
+            name="fk_expenses_tenant_category",
+            ondelete="RESTRICT",
+        ),
+        ForeignKeyConstraint(
+            ["tenant_id", "account_id"],
+            ["accounts.tenant_id", "accounts.id"],
+            name="fk_expenses_tenant_account",
+            ondelete="RESTRICT",
+        ),
+        ForeignKeyConstraint(
+            ["tenant_id", "register_id"],
+            ["daily_registers.tenant_id", "daily_registers.id"],
+            name="fk_expenses_tenant_register",
+            ondelete="RESTRICT",
+        ),
         CheckConstraint(
             "amount > 0",
             name="ck_expenses_amount_positive",
+        ),
+        CheckConstraint(
+            "length(trim(reference)) > 0 OR reference IS NULL",
+            name="ck_expenses_reference_nonempty",
         ),
         Index(
             "ix_expenses_tenant_created",
@@ -54,19 +78,16 @@ class Expense(Base):
 
     category_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
-        ForeignKey("categories.id", ondelete="RESTRICT"),
         nullable=False,
     )
 
     account_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
-        ForeignKey("accounts.id", ondelete="RESTRICT"),
         nullable=False,
     )
 
     register_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True),
-        ForeignKey("daily_registers.id", ondelete="RESTRICT"),
         nullable=True,
     )
 
@@ -108,6 +129,6 @@ class Expense(Base):
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
-        server_default=func.now(),
         nullable=False,
+        server_default=func.now(),
     )

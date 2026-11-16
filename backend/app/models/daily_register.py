@@ -1,3 +1,4 @@
+
 import uuid
 from datetime import date, datetime
 from decimal import Decimal
@@ -12,10 +13,10 @@ from sqlalchemy import (
     Numeric,
     UniqueConstraint,
     text,
+    func,
 )
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
-from sqlalchemy.sql import func
 
 from app.db.base import Base
 from app.models.register_enums import DailyRegisterStatus
@@ -30,6 +31,11 @@ class DailyRegister(Base):
             "business_date",
             name="uq_daily_registers_tenant_date",
         ),
+        UniqueConstraint(
+            "tenant_id",
+            "id",
+            name="uq_daily_registers_tenant_id_id",
+        ),
         CheckConstraint(
             "opening_master_capital >= 0",
             name="ck_register_opening_capital_nonnegative",
@@ -37,6 +43,14 @@ class DailyRegister(Base):
         CheckConstraint(
             "closing_master_capital IS NULL OR closing_master_capital >= 0",
             name="ck_register_closing_capital_nonnegative",
+        ),
+        CheckConstraint(
+            """
+            (status = 'OPEN' AND closed_at IS NULL AND closed_by_user_id IS NULL)
+            OR
+            (status = 'CLOSED' AND closed_at IS NOT NULL AND closed_by_user_id IS NOT NULL)
+            """,
+            name="ck_daily_register_status_timestamps",
         ),
         Index(
             "ix_daily_registers_tenant_status",
@@ -104,8 +118,8 @@ class DailyRegister(Base):
 
     opened_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
-        server_default=func.now(),
         nullable=False,
+        server_default=func.now(),
     )
 
     closed_at: Mapped[datetime | None] = mapped_column(

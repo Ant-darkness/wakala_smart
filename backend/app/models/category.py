@@ -1,3 +1,4 @@
+
 import uuid
 from datetime import datetime
 
@@ -7,6 +8,7 @@ from sqlalchemy import (
     ForeignKey,
     Index,
     String,
+    UniqueConstraint,
     func,
     text,
 )
@@ -18,22 +20,13 @@ from app.db.base import Base
 
 class Category(Base):
     __tablename__ = "categories"
-    # name = "uq_categories_tenant_name",
-
-    ##__table_args__ = (
-    ##    Index(
-    ##        "tenant_id",
-    ##        func.lower(name),
-    ##        unique=True,
-    ##    ),
-    ##    Index(
-    ##        "ix_categories_tenant_active",
-    ##        "tenant_id",
-    ##        "is_active",
-    ##    ),
-    ##)
 
     __table_args__ = (
+        UniqueConstraint(
+            "tenant_id",
+            "id",
+            name="uq_categories_tenant_id_id",
+        ),
         Index(
             "uq_categories_tenant_name_lower",
             "tenant_id",
@@ -73,11 +66,11 @@ class Category(Base):
         Boolean,
         nullable=False,
         default=True,
-        server_default="true",
+        server_default=text("true"),
     )
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
-        server_default=func.now(),
         nullable=False,
+        server_default=func.now(),
     )

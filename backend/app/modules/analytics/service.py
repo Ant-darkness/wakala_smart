@@ -5,7 +5,6 @@ from uuid import UUID
 from app.models.account import Account
 from app.models.debtor import Debtor
 from app.models.debtor_enums import DebtorStatus
-from app.models.enums import MembershipStatus
 from app.models.expense import Expense
 from app.models.financial_enums import ExpenseStatus
 from app.models.tenant_member import TenantMember
@@ -288,7 +287,6 @@ def get_agent_performance(
             Transaction.occurred_at >= start_at,
             Transaction.occurred_at < end_at,
             Transaction.is_reversed.is_(False),
-            TenantMember.status == MembershipStatus.ACTIVE,
         )
         .group_by(
             User.id,
